@@ -36,10 +36,13 @@ api_key = st.sidebar.text_input("Enter Groq API Key")
 if not db_uri:
     st.info("Please enter the Database Information")
     
-if api_key:
-    llm_model = ChatGroq(groq_api_key=api_key, model_name="Llama3-8b-8192", streaming=True)
-else:
-    st.info("Please enter the Groq API Key")
+if not api_key:
+    st.error("Please enter the Groq API Key to continue");
+    st.stop()
+
+
+llm_model = ChatGroq(groq_api_key=api_key, model_name="Llama3-8b-8192", streaming=True)
+
 
 @st.cache_resource(ttl="2h")
 def configure_db(db_uri, mysql_host = None, mysql_username=None, mysql_password = None, mysql_db = None):
@@ -56,14 +59,14 @@ def configure_db(db_uri, mysql_host = None, mysql_username=None, mysql_password 
     
     
 if db_uri == MYSQL:
-    db = configure_db(db_uri, mysql_username, mysql_password, mysql_host, mysql_db)
+    db = configure_db(db_uri, mysql_host=mysql_host, mysql_username=mysql_username, mysql_password=mysql_password, mysql_db=mysql_db)
 else:
     db = configure_db(db_uri)
     
   
 toolkit = SQLDatabaseToolkit(db=db, llm=llm_model)
 
-agent = create_sql_agent(llm=llm_model, toolkit=toolkit, agent_type=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True)
+agent = create_sql_agent(llm=llm_model, toolkit=toolkit, agent_type=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True, handle_parsing_errors = True)
 
 if "messages" not in st.session_state or st.sidebar.button("Clear Chat"):
     st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you?"}]
